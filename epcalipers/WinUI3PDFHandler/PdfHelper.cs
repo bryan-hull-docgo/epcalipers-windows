@@ -11,6 +11,7 @@ using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading.Tasks;
+using EPCalipersPdf;
 using Microsoft.UI.Xaml.Media.Imaging;
 using PdfiumViewer;
 using Windows.Graphics.Imaging;
@@ -22,7 +23,7 @@ namespace PdfiumPDFHandler
     /// Encapsulate and isolate nasty PDF code.
     /// This uses the Pdfium NuGet package.
     /// </summary>
-    public class PdfHelper : PDFHandler.IPdfHelper
+    public class PdfHelper : IPdfHelper
     {
         private PdfDocument _pdfDocument = null;
         private int _pageNumber = 0;  // zero-based page numbers
@@ -55,7 +56,7 @@ namespace PdfiumPDFHandler
         }
 
         /// <inheritdoc/>
-        public PDFHandler.PdfResolution Resolution { get; set; } = PDFHandler.PdfResolution.High;
+        public PdfResolution Resolution { get; set; } = PdfResolution.High;
 
         /// <inheritdoc/>
         public bool IsPdfFile(StorageFile file) =>
@@ -188,8 +189,8 @@ namespace PdfiumPDFHandler
         {
             return Resolution switch
             {
-                PDFHandler.PdfResolution.High => 300,
-                PDFHandler.PdfResolution.Low => 150,
+                PdfResolution.High => 300,
+                PdfResolution.Low => 150,
                 _ => 300,
             };
         }

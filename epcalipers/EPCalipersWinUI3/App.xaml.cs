@@ -28,7 +28,7 @@ namespace EPCalipersWinUI3
 			var arch = System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture;
 		}
 
-		public readonly static MainWindow MainWindow = new();
+		public static MainWindow MainWindow { get; private set; }
 
 		/// <summary>
 		/// Invoked when the application is launched.
@@ -47,6 +47,7 @@ namespace EPCalipersWinUI3
 			{
 				AppHelper.StartupFile = storageFile;
 			}
+			MainWindow ??= new MainWindow();
 			MainWindow.Activate();
 
 #if DEBUG

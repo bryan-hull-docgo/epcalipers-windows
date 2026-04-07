@@ -78,7 +78,14 @@ namespace EPCalipersWinUI3
 
 		public static string GetAppTitleFromSystem()
 		{
-			return Windows.ApplicationModel.Package.Current.DisplayName;
+			try
+			{
+				return Windows.ApplicationModel.Package.Current.DisplayName;
+			}
+			catch
+			{
+				return "EP Calipers 3";
+			}
 		}
 
 		public void Navigate(System.Type type)

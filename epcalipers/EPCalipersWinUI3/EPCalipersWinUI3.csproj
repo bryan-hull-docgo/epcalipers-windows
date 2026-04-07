@@ -10,36 +10,41 @@
     <!--<RuntimeIdentifier>win-$(Platform)</RuntimeIdentifier>-->
     <PublishProfile>Properties\PublishProfiles\win-$(Platform).pubxml</PublishProfile>
     <UseWinUI>true</UseWinUI>
+    <WindowsPackageType>None</WindowsPackageType>
     <EnableMsixTooling>true</EnableMsixTooling>
-    <PackageCertificateKeyFile>epstudios.pfx</PackageCertificateKeyFile>
-    <AppxPackageSigningEnabled>True</AppxPackageSigningEnabled>
+    <EnableCoreMrtTooling Condition="'$(BuildingInsideVisualStudio)' != 'true'">false</EnableCoreMrtTooling>
+    <WindowsAppSdkUndockedRegFreeWinRTInitialize>true</WindowsAppSdkUndockedRegFreeWinRTInitialize>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
     <!--<PlatformTarget>x64</PlatformTarget>--> 
     <Company>EP Studios</Company>
     <Description>EP Calipers implentation for modern Windows systems.</Description>
     <Copyright>Copyright (c) 2023-2026</Copyright>
     <PackageProjectUrl>https://www.epstudiossoftware.com</PackageProjectUrl>
-    <PackageIcon>StoreLogo.scale-200.png</PackageIcon>
     <Authors>EP Studios</Authors>
-    <GenerateAppInstallerFile>False</GenerateAppInstallerFile>
-    <AppxPackageSigningTimestampDigestAlgorithm>SHA256</AppxPackageSigningTimestampDigestAlgorithm>
-    <AppxAutoIncrementPackageRevision>False</AppxAutoIncrementPackageRevision>
-    <AppxSymbolPackageEnabled>True</AppxSymbolPackageEnabled>
     <GenerateTestArtifacts>True</GenerateTestArtifacts>
-    <AppxBundle>Never</AppxBundle>
-    <HoursBetweenUpdateChecks>0</HoursBetweenUpdateChecks>
     <Title>EP Calipers 3</Title>
     <Product>EP Calipers 3</Product>
-    <AppxPackageDir>C:\Users\mannd\OneDrive\Documents\epcalipers-3-msix\</AppxPackageDir>
-    <AppxBundlePlatforms>x86|x64|arm64</AppxBundlePlatforms>
     <StartupObject>EPCalipersWinUI3.Program</StartupObject>
     <ApplicationIcon>Assets\EpCalipersLargeTemplate1.ico</ApplicationIcon>
     <EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
-    <GenerateTemporaryStoreCertificate>True</GenerateTemporaryStoreCertificate>
     <Configurations>Debug;Release;Test</Configurations>
     <Version>3.3.0.0</Version>
     <FileVersion>3.3.0.0</FileVersion>
     <!--<PlatformTarget>AnyCPU</PlatformTarget>-->
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(WindowsPackageType)'!='None'">
+    <PackageCertificateKeyFile>epstudios.pfx</PackageCertificateKeyFile>
+    <AppxPackageSigningEnabled>True</AppxPackageSigningEnabled>
+    <PackageIcon>StoreLogo.scale-200.png</PackageIcon>
+    <GenerateAppInstallerFile>False</GenerateAppInstallerFile>
+    <AppxPackageSigningTimestampDigestAlgorithm>SHA256</AppxPackageSigningTimestampDigestAlgorithm>
+    <AppxAutoIncrementPackageRevision>False</AppxAutoIncrementPackageRevision>
+    <AppxSymbolPackageEnabled>True</AppxSymbolPackageEnabled>
+    <AppxBundle>Never</AppxBundle>
+    <HoursBetweenUpdateChecks>0</HoursBetweenUpdateChecks>
+    <AppxPackageDir>C:\Users\mannd\OneDrive\Documents\epcalipers-3-msix\</AppxPackageDir>
+    <AppxBundlePlatforms>x86|x64|arm64</AppxBundlePlatforms>
+    <GenerateTemporaryStoreCertificate>True</GenerateTemporaryStoreCertificate>
   </PropertyGroup>
   <ItemGroup>
     <!--Added to put .NET 8 into backwards compatibility mode.-->
@@ -99,13 +104,16 @@
     <PackageReference Include="WinUIEx" Version="2.5.1" />
     <Manifest Include="$(ApplicationManifest)" />
   </ItemGroup>
+  <ItemGroup>
+    <None Remove="Package.appxmanifest" />
+  </ItemGroup>
 
   <!-- 
     Defining the "Msix" ProjectCapability here allows the Single-project MSIX Packaging
     Tools extension to be activated for this project even if the Windows App SDK Nuget
     package has not yet been restored.
   -->
-  <ItemGroup Condition="'$(DisableMsixProjectCapabilityAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
+  <ItemGroup Condition="'$(WindowsPackageType)'!='None' and '$(DisableMsixProjectCapabilityAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
     <ProjectCapability Include="Msix" />
   </ItemGroup>
   <ItemGroup>
@@ -156,7 +164,7 @@
     <Content Update="Assets\Help\org.css">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <None Update="Assets\StoreLogo.scale-200.png">
+    <None Update="Assets\StoreLogo.scale-200.png" Condition="'$(WindowsPackageType)'!='None'">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
@@ -199,7 +207,7 @@
     Explorer "Package and Publish" context menu entry to be enabled for this project even if 
     the Windows App SDK Nuget package has not yet been restored.
   -->
-  <PropertyGroup Condition="'$(DisableHasPackageAndPublishMenuAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
+  <PropertyGroup Condition="'$(WindowsPackageType)'!='None' and '$(DisableHasPackageAndPublishMenuAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
     <HasPackageAndPublishMenu>true</HasPackageAndPublishMenu>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">

@@ -3,7 +3,11 @@ using EPCalipersWinUI3.Models.Calipers;
 using EPCalipersWinUI3.Views;
 using Microsoft.UI;
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
+using System.Text.Json;
 using Windows.Storage;
 using Windows.UI;
 using static EPCalipersWinUI3.Helpers.MathHelper;
@@ -27,7 +31,7 @@ namespace EPCalipersWinUI3.Models
 
 	public sealed class Settings : ISettings
 	{
-		private readonly ApplicationDataContainer _localSettings;
+		private readonly ISettingsContainer _localSettings;
 		private const string _autoAlignLabelKey = "AutoAlignLabel";
 		private const string _timeCaliperLabelAlignmentKey = "TimeCaliperLabelAlignmentKey";
 		private const string _amplitudeCaliperLabelAlignmentKey = "AmplitudeCaliperLabelAlignmentKey";
@@ -65,7 +69,14 @@ namespace EPCalipersWinUI3.Models
 
 		private Settings()
 		{
-			_localSettings = ApplicationData.Current.LocalSettings;
+			try
+			{
+				_localSettings = new ApplicationDataSettingsContainer(ApplicationData.Current.LocalSettings);
+			}
+			catch
+			{
+				_localSettings = new FileSettingsContainer();
+			}
 		}
 
 		private static readonly Lazy<Settings> lazy = new(() => new Settings());
@@ -360,5 +371,157 @@ namespace EPCalipersWinUI3.Models
 		public double DefaultNoteWidth { get; set; } = 180.0;
 		public double DefaultNoteHeight { get; set; } = 80.0;
 		public Color DefaultNoteForegroundColor { get; set; } = Colors.Black;
+	}
+
+	internal interface ISettingsContainer
+	{
+		IDictionary<string, object> Values { get; }
+	}
+
+	internal sealed class ApplicationDataSettingsContainer : ISettingsContainer
+	{
+		public ApplicationDataSettingsContainer(ApplicationDataContainer container)
+		{
+			Values = container.Values;
+		}
+
+		public IDictionary<string, object> Values { get; }
+	}
+
+	internal sealed class FileSettingsContainer : ISettingsContainer
+	{
+		public FileSettingsContainer()
+		{
+			var settingsDirectory = Path.Combine(
+				Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+				"EPCalipersWinUI3");
+			Directory.CreateDirectory(settingsDirectory);
+			Values = new PersistentSettingsDictionary(Path.Combine(settingsDirectory, "settings.json"));
+		}
+
+		public IDictionary<string, object> Values { get; }
+	}
+
+	internal sealed class PersistentSettingsDictionary : IDictionary<string, object>
+	{
+		private readonly string _path;
+		private readonly Dictionary<string, object> _values = new();
+
+		public PersistentSettingsDictionary(string path)
+		{
+			_path = path;
+			Load();
+		}
+
+		public object this[string key]
+		{
+			get => _values.TryGetValue(key, out var value) ? value : null;
+			set
+			{
+				_values[key] = value;
+				Save();
+			}
+		}
+
+		public ICollection<string> Keys => _values.Keys;
+
+		public ICollection<object> Values => _values.Values;
+
+		public int Count => _values.Count;
+
+		public bool IsReadOnly => false;
+
+		public void Add(string key, object value)
+		{
+			_values.Add(key, value);
+			Save();
+		}
+
+		public bool ContainsKey(string key) => _values.ContainsKey(key);
+
+		public bool Remove(string key)
+		{
+			var removed = _values.Remove(key);
+			if (removed)
+			{
+				Save();
+			}
+
+			return removed;
+		}
+
+		public bool TryGetValue(string key, out object value) => _values.TryGetValue(key, out value);
+
+		public void Add(KeyValuePair<string, object> item)
+		{
+			_values.Add(item.Key, item.Value);
+			Save();
+		}
+
+		public void Clear()
+		{
+			_values.Clear();
+			Save();
+		}
+
+		public bool Contains(KeyValuePair<string, object> item) => ((IDictionary<string, object>)_values).Contains(item);
+
+		public void CopyTo(KeyValuePair<string, object>[] array, int arrayIndex) => ((IDictionary<string, object>)_values).CopyTo(array, arrayIndex);
+
+		public bool Remove(KeyValuePair<string, object> item)
+		{
+			var removed = ((IDictionary<string, object>)_values).Remove(item);
+			if (removed)
+			{
+				Save();
+			}
+
+			return removed;
+		}
+
+		public IEnumerator<KeyValuePair<string, object>> GetEnumerator() => _values.GetEnumerator();
+
+		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+		private void Load()
+		{
+			if (!File.Exists(_path))
+			{
+				return;
+			}
+
+			try
+			{
+				using var stream = File.OpenRead(_path);
+				using var document = JsonDocument.Parse(stream);
+				if (document.RootElement.ValueKind != JsonValueKind.Object)
+				{
+					return;
+				}
+
+				foreach (var property in document.RootElement.EnumerateObject())
+				{
+					_values[property.Name] = property.Value.ValueKind switch
+					{
+						JsonValueKind.True => true,
+						JsonValueKind.False => false,
+						JsonValueKind.Number when property.Value.TryGetInt32(out var intValue) => intValue,
+						JsonValueKind.Number when property.Value.TryGetDouble(out var doubleValue) => doubleValue,
+						JsonValueKind.String => property.Value.GetString(),
+						_ => property.Value.ToString(),
+					};
+				}
+			}
+			catch
+			{
+				_values.Clear();
+			}
+		}
+
+		private void Save()
+		{
+			var json = JsonSerializer.Serialize(_values, new JsonSerializerOptions { WriteIndented = true });
+			File.WriteAllText(_path, json);
+		}
 	}
 }
